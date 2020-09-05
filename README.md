@@ -9,14 +9,16 @@ Please spend about 2 hours on this. The goal is obviously not to re-create Apach
 
 Having python 3.7 is the only requirement, as this project only uses the standard lib
 
-## Startup
+## Usage
 
 Just start the server with python 3.7+:
 `python main.py`
+You can configure port and served directory from within the main.py code
 
-## Functionalities
+## Features
 
-- The server gets a question on  
-
-
-TODO: conf file ?
+- Starts an HTTP server on localhost, on a configurable port
+- Parses requests from client (gets the method and the target URI)
+- Returns the requested content: builds a directory page if the requested resource is a directory, returns file as text/html if it's a file (doesn't adapt to MIME type), returns 404 if nothing was found
+- All files are served from a configurable folder (a "public" directory is published with this repo and is the default target folder)
+- Uses asyncio, so multiple concurrent requests can be handled by the server

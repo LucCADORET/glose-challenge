@@ -91,7 +91,7 @@ class HTTPServer:
 
         # Add the previous link
         if path != self.root_path:
-            response_string += '<a href="..">..</a><br><br>\r\n'
+            response_string += '<a href="javascript:javascript:history.go(-1)">..</a><br><br>\r\n'
         for content in list_dir:
             content_path = os.path.join(path, content)
             prefix = ""
