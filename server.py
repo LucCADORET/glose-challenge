@@ -34,16 +34,14 @@ class HTTPServer:
         await server.serve_forever()
 
     async def poll(self, reader, writer):
-        while True:
-            data = await reader.read(1024)  # Max number of bytes to read
-            if not data:
-                break
-            request = HTTPRequest(data.decode())
-            raw_response = self.handle_request(request)
-            logger.debug("{} {} {}".format(
-                request.method, request.uri, len(raw_response)))
-            writer.write(raw_response)
-            await writer.drain()
+        data = await reader.read(1024)  # Max number of bytes to read
+        request = HTTPRequest(data.decode())
+        raw_response = self.handle_request(request)
+        logger.info("{} {} {}".format(
+            request.method, request.uri, len(raw_response)))
+        writer.write(raw_response)
+        await writer.drain()
+        logger.debug("Close the client socket")
         writer.close()
 
     def handle_request(self, request):
