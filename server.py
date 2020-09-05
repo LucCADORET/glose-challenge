@@ -4,6 +4,7 @@ import sys
 from request import HTTPRequest
 from response import HTTPResponse
 import os
+import asyncio
 
 # Setting up logging
 logger = logging.getLogger()
@@ -23,27 +24,27 @@ class HTTPServer:
         self.root_path = os.path.abspath(root_dir)
 
     def start(self):
-        serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        serversocket.bind((self.host, self.port))
-        serversocket.listen(5)
+        asyncio.run(self.server())
 
-        logger.info("HTTP Server started on {}".format(
-            serversocket.getsockname()))
+    async def server(self):
+        server = await asyncio.start_server(self.poll, self.host, self.port)
+        logger.info(
+            "Starting server at http://{}:{}".format(self.host, self.port))
+        logger.info("Serving dir: {}".format(self.root_path))
+        await server.serve_forever()
 
+    async def poll(self, reader, writer):
         while True:
-            conn, addr = serversocket.accept()
-            data = conn.recv(1024)
-
+            data = await reader.read(1024)  # Max number of bytes to read
+            if not data:
+                break
             request = HTTPRequest(data.decode())
-
             raw_response = self.handle_request(request)
-
-            logger.debug("{}:{} {} {} {}".format(
-                addr[0], addr[1], request.method, request.uri, len(raw_response)))
-
-            conn.sendall(raw_response)
-            conn.close()
+            logger.debug("{} {} {}".format(
+                request.method, request.uri, len(raw_response)))
+            writer.write(raw_response)
+            await writer.drain()
+        writer.close()
 
     def handle_request(self, request):
         """
@@ -86,7 +87,7 @@ class HTTPServer:
         raise Exception("Not Found")
 
     def get_dir_string(self, path):
-        """Build a nice string for the page to be show to the user when he requests a dir"""
+        """ Build a nice string for the page to be show to the user when he requests a directory """
         list_dir = os.listdir(path)
         response_string = ''
 
@@ -94,10 +95,11 @@ class HTTPServer:
         if path != self.root_path:
             response_string += '<a href="..">..</a><br><br>\r\n'
         for content in list_dir:
-            content_path = os.path.join(self.root_path, content)
+            content_path = os.path.join(path, content)
             prefix = ""
             if os.path.isdir(content_path):
                 prefix = "[DIR] "
+            content_relative_path = os.path.relpath(content_path, self.root_path)
             response_string += '<a href="{}">{}</a><br>\r\n'.format(
-                content, "{}{}".format(prefix, content))
+                content_relative_path, "{}{}".format(prefix, content))
         return response_string
